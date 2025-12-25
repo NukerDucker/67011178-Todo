@@ -1,0 +1,17 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model todo {
+  id         Int      @id @default(autoincrement())
+  username   String   @db.VarChar(20)
+  task       String   @db.VarChar(50)
+  done       Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+}
