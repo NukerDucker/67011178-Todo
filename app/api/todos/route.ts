@@ -1,6 +1,7 @@
 // app/api/todos/route.ts
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Tagesschrift } from 'next/font/google';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
   try {
     const todos = await prisma.todo.findMany({
       where: { username },
-      orderBy: { id: 'desc' },
+      orderBy: { target_date: 'desc' },
     });
     return NextResponse.json(todos);
   } catch (error) {
@@ -20,13 +21,25 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { username, task } = await request.json();
-  const newTodo = await prisma.todo.create({
-    data: {
-        username,
-        task,
-        done: false // Explicitly set for Postgres boolean
+  try {
+    const { username, task, target_date } = await request.json();
+
+    if (!username || !task || !target_date) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
-  });
-  return NextResponse.json(newTodo);
+
+    const newTodo = await prisma.todo.create({
+      data: {
+        username: username,
+        task: task,
+        target_date: new Date(target_date), // Ensure this is a Date object
+        status: 'TODO'
+      }
+    });
+
+    return NextResponse.json(newTodo);
+  } catch (error) {
+    console.error("POST Error:", error);
+    return NextResponse.json({ error: "Failed to create task" }, { status: 500 });
+  }
 }
