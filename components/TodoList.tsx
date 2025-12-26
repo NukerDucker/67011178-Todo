@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, X, Check, LogOut, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Check, LogOut, Loader2, Calendar, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface Todo {
     id: number;
     username: string;
     task: string;
-    done: boolean;
+    status: 'TODO' | 'DOING' | 'DONE';
+    target_date: string;
     created_at: string;
     updated_at: string;
 }
@@ -15,9 +16,11 @@ interface Todo {
 export default function TodoList({ username, onLogout }: { username: string, onLogout: () => void }) {
     const [todos, setTodos] = useState<Todo[]>([]);
     const [newTask, setNewTask] = useState('');
+    const [targetDate, setTargetDate] = useState('');
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editText, setEditText] = useState('');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -43,41 +46,53 @@ export default function TodoList({ username, onLogout }: { username: string, onL
     // 2. Add Todo
     const handleAddTodo = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newTask.trim()) return;
+        if (!newTask.trim() || !targetDate) return;
 
         try {
             const response = await fetch(`${API_URL}/todos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, task: newTask }),
+                body: JSON.stringify({
+                    username,
+                    task: newTask,
+                    target_date: targetDate
+                }),
             });
             if (response.ok) {
                 const newTodo = await response.json();
                 setTodos([newTodo, ...todos]);
                 setNewTask('');
+                setTargetDate('');
             }
         } catch (err) {
             console.error('Error adding todo:', err);
         }
     };
 
-    // 3. Toggle Status (Checkbox)
-    const handleToggleDone = async (todo: Todo) => {
+    // 3. Cycle Status (TODO -> DOING -> DONE)
+    const handleStatusChange = async (todo: Todo) => {
+        const nextStatus: Record<string, 'TODO' | 'DOING' | 'DONE'> = {
+            'TODO': 'DOING',
+            'DOING': 'DONE',
+            'DONE': 'TODO'
+        };
+        const updatedStatus = nextStatus[todo.status];
+
         try {
             const response = await fetch(`${API_URL}/todos/${todo.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ done: !todo.done }),
+                body: JSON.stringify({ status: updatedStatus }),
             });
             if (response.ok) {
-                setTodos(todos.map(t => t.id === todo.id ? { ...t, done: !todo.done } : t));
+                setTodos(todos.map(t => t.id === todo.id ? { ...t, status: updatedStatus } : t));
             }
         } catch (err) {
-            console.error('Error toggling status:', err);
+            console.error('Error updating status:', err);
         }
     };
 
-    // 4. Edit Task Text
+    // 4. Edit Task
     const handleEditTodo = async (id: number) => {
         if (!editText.trim()) return;
         try {
@@ -95,137 +110,172 @@ export default function TodoList({ username, onLogout }: { username: string, onL
         }
     };
 
-    // 5. Delete Todo
+    // 5. Delete Task
     const handleDeleteTodo = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this task?")) return;
+        if (!confirm("Are you sure?")) return;
         try {
             const response = await fetch(`${API_URL}/todos/${id}`, { method: 'DELETE' });
-            if (response.ok) {
-                setTodos(todos.filter(t => t.id !== id));
-            }
+            if (response.ok) setTodos(todos.filter(t => t.id !== id));
         } catch (err) {
             console.error('Error deleting todo:', err);
         }
     };
 
+    const statuses: ('TODO' | 'DOING' | 'DONE')[] = ['TODO', 'DOING', 'DONE'];
+
     return (
         <div className="min-h-screen bg-slate-50 pb-12">
-            {/* Header / Logo Section */}
+            {/* Header */}
             <header className="bg-white border-b sticky top-0 z-10">
-                <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src="/cei-logo.png" alt="CEI Logo" className="h-8 w-auto" />
-                        <span className="hidden sm:block font-bold text-slate-700 border-l pl-3">Todo System</span>
+                        <img src="/cei-logo.png" alt="CEI Logo" className="h-9 w-auto" />
+                        <span className="font-bold text-slate-700 border-l pl-3 uppercase tracking-tight">CEI Todo</span>
                     </div>
                     <div className="flex items-center gap-4">
-                        <span className="text-sm text-slate-500">User: <b className="text-slate-900">{username}</b></span>
-                        <button
-                            onClick={onLogout}
-                            className="flex items-center gap-1 text-sm font-medium text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
-                        >
+                        <span className="text-sm text-slate-500 hidden sm:block">User: <b className="text-slate-900">{username}</b></span>
+                        <button onClick={onLogout} className="text-sm font-medium text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
                             <LogOut size={16} /> Logout
                         </button>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-3xl mx-auto px-4 pt-8">
-                {/* Add Task Input */}
-                <div className="bg-white rounded-2xl shadow-sm border p-4 mb-6">
-                    <form onSubmit={handleAddTodo} className="flex gap-2">
+            <main className="max-w-6xl mx-auto px-4 pt-8">
+                {/* Add Task & Sort Section */}
+                <div className="bg-white rounded-2xl shadow-sm border p-4 mb-8">
+                    <form onSubmit={handleAddTodo} className="flex flex-col md:flex-row gap-3">
                         <input
                             type="text"
-                            placeholder="What needs to be done?"
+                            placeholder="Add a new task..."
                             value={newTask}
                             onChange={(e) => setNewTask(e.target.value)}
                             maxLength={50}
-                            className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-sky-500 outline-none text-slate-700"
+                            className="flex-[3] bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-sky-500 outline-none text-slate-700"
+                            required
                         />
-                        <button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white p-3 rounded-xl transition-all shadow-md">
-                            <Plus size={24} />
-                        </button>
+                        <input
+                            type="date"
+                            value={targetDate}
+                            onChange={(e) => setTargetDate(e.target.value)}
+                            className="flex-[1] bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-sky-500 outline-none text-slate-500"
+                            required
+                        />
+
+                        {/* Action Buttons Group */}
+                        <div className="flex gap-2 shrink-0">
+                            <button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white px-6 py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 font-bold active:scale-95">
+                                <Plus size={20} /> Add
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-3 rounded-xl transition-all border border-slate-200 flex items-center justify-center gap-2 font-bold active:scale-95"
+                                title="Toggle Sort Order"
+                            >
+                        {sortOrder === 'asc' ? <ArrowUp size={20} /> : <ArrowDown size={20} />}
+                            </button>
+                        </div>
                     </form>
                 </div>
 
-                {/* Todo List */}
-                <div className="space-y-3">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                            <Loader2 className="animate-spin mb-2" />
-                            <p>Loading your tasks...</p>
-                        </div>
-                    ) : todos.length === 0 ? (
-                        <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300">
-                            <p className="text-slate-400">No tasks found. Add one above!</p>
-                        </div>
-                    ) : (
-                        todos.map(todo => (
-                            <div
-                                key={todo.id}
-                                className={`group flex items-center gap-4 p-4 rounded-2xl border transition-all ${
-                                    todo.done ? 'bg-slate-50/50 border-slate-200' : 'bg-white border-white shadow-sm'
-                                }`}
-                            >
-                                <button
-                                    onClick={() => handleToggleDone(todo)}
-                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                        todo.done ? 'bg-green-500 border-green-500 text-white' : 'border-slate-300 hover:border-sky-500'
-                                    }`}
-                                >
-                                    {todo.done && <Check size={14} strokeWidth={3} />}
-                                </button>
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                        <Loader2 className="animate-spin mb-2" size={32} />
+                        <p className="font-medium">Loading CEI Tasks...</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {statuses.map(status => {
+                            // Apply Sort Logic
+                            const filteredSorted = todos
+                                .filter(t => t.status === status)
+                                .sort((a, b) => {
+                                    const timeA = new Date(a.target_date).getTime();
+                                    const timeB = new Date(b.target_date).getTime();
+                                    return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+                                });
 
-                                <div className="flex-1 min-w-0">
-                                    {editingId === todo.id ? (
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                value={editText}
-                                                onChange={(e) => setEditText(e.target.value)}
-                                                className="w-full bg-white border border-sky-500 rounded px-2 py-1 text-slate-800"
-                                                autoFocus
-                                                maxLength={50}
-                                            />
-                                            <button onClick={() => handleEditTodo(todo.id)} className="text-green-600"><Check size={20}/></button>
-                                            <button onClick={() => setEditingId(null)} className="text-slate-400"><X size={20}/></button>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <p className={`text-base font-medium truncate ${todo.done ? 'line-through text-slate-400' : 'text-slate-700'}`}>
-                                                {todo.task}
-                                            </p>
-                                            <p className="text-[10px] text-slate-400 uppercase tracking-tight">
-                                                Last updated: {new Date(todo.updated_at).toLocaleString()}
-                                            </p>
-                                        </>
-                                    )}
-                                </div>
+                            return (
+                                <div key={status} className="flex flex-col gap-4">
+                                    <h3 className="flex items-center justify-between font-bold text-slate-500 text-[11px] tracking-widest px-2 uppercase">
+                                        {status}
+                                        <span className="bg-slate-200 px-2 py-0.5 rounded-full text-[10px] text-slate-600 font-bold">
+                                            {filteredSorted.length}
+                                        </span>
+                                    </h3>
 
-                                {!editingId && (
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={() => { setEditingId(todo.id); setEditText(todo.task); }}
-                                            className="p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors"
-                                        >
-                                            <Pencil size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteTodo(todo.id)}
-                                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                    <div className="space-y-3 min-h-[150px]">
+                                        {filteredSorted.map(todo => (
+                                            <div
+                                                key={todo.id}
+                                                className={`group bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-sky-300 transition-all ${todo.status === 'DONE' ? 'opacity-70 bg-slate-50/50' : ''}`}
+                                            >
+                                                {editingId === todo.id ? (
+                                                    <div className="flex flex-col gap-2">
+                                                        <input
+                                                            value={editText}
+                                                            onChange={(e) => setEditText(e.target.value)}
+                                                            className="w-full border border-sky-500 rounded px-2 py-1 outline-none text-sm"
+                                                            autoFocus
+                                                        />
+                                                        <div className="flex gap-2 justify-end">
+                                                            <button onClick={() => setEditingId(null)} className="text-slate-400 text-[10px] font-bold">CANCEL</button>
+                                                            <button onClick={() => handleEditTodo(todo.id)} className="text-sky-600 text-[10px] font-bold">SAVE</button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="flex justify-between items-start gap-2 mb-2">
+                                                            <p className={`text-sm font-semibold text-slate-800 break-words leading-tight ${todo.status === 'DONE' ? 'line-through text-slate-400' : ''}`}>
+                                                                {todo.task}
+                                                            </p>
+                                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                                                <button onClick={() => { setEditingId(todo.id); setEditText(todo.task); }} className="text-slate-400 hover:text-sky-600">
+                                                                    <Pencil size={14} />
+                                                                </button>
+                                                                <button onClick={() => handleDeleteTodo(todo.id)} className="text-slate-400 hover:text-red-600">
+                                                                    <Trash2 size={14} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 mb-4">
+                                                            <Calendar size={12} className="shrink-0" />
+                                                            <span>Target: {new Date(todo.target_date).toLocaleDateString()}</span>
+                                                        </div>
+
+                                                        <button
+                                                            onClick={() => handleStatusChange(todo)}
+                                                            className={`w-full py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1
+                                                                ${status === 'TODO' ? 'bg-sky-50 text-sky-600 hover:bg-sky-100' :
+                                                                  status === 'DOING' ? 'bg-green-50 text-green-600 hover:bg-green-100' :
+                                                                  'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                                        >
+                                                            {status === 'DONE' ? 'Restart' : 'Advance'} <ChevronRight size={12}/>
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ))}
+                                        {filteredSorted.length === 0 && (
+                                            <div className="border-2 border-dashed border-slate-200 rounded-2xl py-10 text-center">
+                                                <p className="text-[10px] text-slate-300 font-bold uppercase tracking-tighter italic">No {status} tasks</p>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        ))
-                    )}
-                </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </main>
 
             {/* Student ID Footer */}
-            <footer className="fixed bottom-4 left-0 right-0 text-center">
-                <span className="bg-slate-800 text-white text-[10px] px-3 py-1 rounded-full opacity-50">
-                    6x01xxxx - Web Programming Project
+            <footer className="fixed bottom-4 left-0 right-0 text-center pointer-events-none">
+                <span className="bg-slate-800/90 backdrop-blur-sm text-white text-[9px] px-4 py-1.5 rounded-full shadow-lg font-bold">
+                    6x01xxxx - CEI Web Programming Project
                 </span>
             </footer>
         </div>
