@@ -241,9 +241,27 @@ export default function TodoList({ username, onLogout }: { username: string, onL
                                                             </div>
                                                         </div>
 
-                                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 mb-4">
+                                                        <div className="flex items-center gap-1.5 text-[10px] font-bold mb-4">
                                                             <Calendar size={12} className="shrink-0" />
-                                                            <span>Target: {new Date(todo.target_date).toLocaleDateString()}</span>
+                                                            <span className="flex gap-1">
+                                                                <span className="text-slate-400">Target: {new Date(todo.target_date).toLocaleDateString()}</span>
+                                                                <span className="text-slate-300">•</span>
+                                                                {(() => {
+                                                                    const target = new Date(todo.target_date);
+                                                                    const today = new Date();
+                                                                    // Reset hours to compare only dates
+                                                                    today.setHours(0, 0, 0, 0);
+                                                                    target.setHours(0, 0, 0, 0);
+
+                                                                    const diffTime = target.getTime() - today.getTime();
+                                                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                                                    if (todo.status === 'DONE') return <span className="text-green-500">COMPLETED</span>;
+                                                                    if (diffDays < 0) return <span className="text-red-500 font-black">OVERDUE ({Math.abs(diffDays)}d)</span>;
+                                                                    if (diffDays === 0) return <span className="text-amber-500">DUE TODAY</span>;
+                                                                    return <span className="text-sky-500">{diffDays} DAYS LEFT</span>;
+                                                                })()}
+                                                            </span>
                                                         </div>
 
                                                         <button
