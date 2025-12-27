@@ -1,30 +1,43 @@
-"use client";
-import { authClient } from "@/lib/auth-client";
+// app/dashboard/page.tsx
+import { getFullUser } from "@/lib/get-user";
+import { redirect } from "next/navigation";
 import TodoList from "@/components/TodoList";
-import { Loader2 } from "lucide-react";
+import { NavBar } from "@/components/NavBar";
 
-export default function DashboardPage() {
-    const { data: session, isPending } = authClient.useSession();
+export default async function DashboardPage() {
+    const user = await getFullUser();
 
-    if (isPending) {
-        return (
-            <div className="h-screen w-full flex items-center justify-center">
-                <Loader2 className="animate-spin text-sky-600" size={40} />
-            </div>
-        );
-    }
-    if (!session) {
-        return <div>Not authenticated. Please log in.</div>;
+    // 1. If no user, they aren't logged in
+    if (!user) {
+        redirect("/login");
     }
 
-
+    // 2. If OAuth created them but they haven't picked a username yet
+    if (!user.username) {
+        redirect("/onboarding");
+    }
 
     return (
-        <TodoList
-            userId={session.user.id}
-            username={session.user.username || "user"}
-            firstname={session.user.firstname || ""}
-            lastname={session.user.lastname || ""}
-        />
+        <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
+             <NavBar
+
+showUser={true}
+
+user={{
+
+displayUsername: user.name, // Fresh from DB (Google Name)
+
+username: user.username, // Fresh from DB (Custom Handle)
+
+}}
+
+/> 
+            <main className="flex-1 p-4">
+                <TodoList
+                    userId={user.id}
+                    username={user.username}
+                />
+            </main>
+        </div>
     );
 }

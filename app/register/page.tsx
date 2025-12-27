@@ -21,6 +21,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { NavBar } from "@/components/NavBar";
 
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -53,7 +54,7 @@ const onSubmit = async (values: z.infer<typeof registerSchema>) => {
     await authClient.signUp.username(
       {
         email: values.email,
-        username: generatedUsername, // Automatically generated
+        username: values.username, // Automatically generated
         password: values.password,
         name: `${values.firstname} ${values.lastname}`,
         firstname: values.firstname,
@@ -79,7 +80,7 @@ const onSubmit = async (values: z.infer<typeof registerSchema>) => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="bg-white border-b h-16 flex items-center px-6">
-        <span className="font-bold text-slate-700 uppercase">CEI Todo</span>
+        <NavBar />
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4">
@@ -136,7 +137,6 @@ const onSubmit = async (values: z.infer<typeof registerSchema>) => {
   sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
   onVerify={(token) => {
     setCaptchaToken(token);
-    console.log("Captcha Verified:", token); // Debug: see if token is generated
   }}
   onExpire={() => setCaptchaToken("")} // Clear token if it expires
   onError={() => toast.error("Captcha failed to load")}

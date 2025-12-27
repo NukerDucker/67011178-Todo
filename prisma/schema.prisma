@@ -13,9 +13,13 @@ model User {
   email         String   @unique
   emailVerified Boolean  @default(false)
   image         String?
-  username      String?  @unique
-  firstname     String? // New: Acceptance Criteria #1
-  lastname      String? // New: Acceptance Criteria #1
+  
+// --- Add these fields ---
+  username      String?   @unique // Required by username plugin
+  firstname     String?   // From your additionalFields
+  lastname      String?   // From your additionalFields
+  // ------------------------
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

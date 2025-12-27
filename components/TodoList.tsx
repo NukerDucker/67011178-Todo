@@ -27,11 +27,10 @@ interface Todo {
 interface TodoListProps {
     userId: string;
     username: string;
-    firstname?: string;
-    lastname?: string;
+    displayUsername?: string;
 }
 
-export default function TodoList({ userId, username, firstname, lastname }: TodoListProps) {
+export default function TodoList({ userId, username, displayUsername, lastname }: TodoListProps) {
     const [todos, setTodos] = useState<Todo[]>([]);
     const [newTask, setNewTask] = useState('');
     const [targetDate, setTargetDate] = useState('');
@@ -145,10 +144,6 @@ export default function TodoList({ userId, username, firstname, lastname }: Todo
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-12 transition-colors duration-300">
-            <NavBar
-                showUser={true}
-                user={{ username, firstname, lastname }}
-            />
 
             <main className="max-w-6xl mx-auto px-4 pt-8">
                 {/* Add Task & Sort Section */}

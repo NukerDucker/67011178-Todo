@@ -8,8 +8,7 @@ import { useRouter } from "next/navigation";
 interface NavBarProps {
   user?: {
     username: string;
-    firstname?: string;
-    lastname?: string;
+    displayUsername: string;
   };
   showUser?: boolean;
 }
@@ -44,7 +43,7 @@ export function NavBar({ user, showUser = false }: NavBarProps) {
           {showUser && user && (
             <>
               <span className="text-sm text-slate-500 dark:text-slate-400 hidden sm:block">
-                Welcome, <b className="text-slate-900 dark:text-slate-100">{user.firstname} {user.lastname} ({user.username})</b>
+                Welcome, <b className="text-slate-900 dark:text-slate-100">{user.displayUsername} ({user.username})</b>
               </span>
               <button
                 onClick={handleLogout}
