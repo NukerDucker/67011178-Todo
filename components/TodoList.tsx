@@ -5,15 +5,14 @@ import {
     Plus,
     Pencil,
     Trash2,
-    LogOut,
     Loader2,
     Calendar,
     ChevronRight,
     ArrowUp,
     ArrowDown
 } from 'lucide-react';
-import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { NavBar } from "@/components/NavBar";
 
 interface Todo {
     id: number;
@@ -43,16 +42,6 @@ export default function TodoList({ userId, username, firstname, lastname }: Todo
     const router = useRouter();
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
-
-    const handleLogout = async () => {
-        await authClient.signOut({
-            fetchOptions: {
-                onSuccess: () => {
-                    router.push("/login");
-                },
-            },
-        });
-    };
 
     const fetchTodos = async () => {
         try {
@@ -155,29 +144,15 @@ export default function TodoList({ userId, username, firstname, lastname }: Todo
     const statuses: ('TODO' | 'DOING' | 'DONE')[] = ['TODO', 'DOING', 'DONE'];
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-12">
-            {/* Header */}
-            <header className="bg-white border-b sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <img src="/cei-logo.png" alt="CEI Logo" className="h-9 w-auto" />
-                        <span className="font-bold text-slate-700 border-l pl-3 uppercase tracking-tight">CEI Todo</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        {/* Displays: Full Name (username) */}
-                        <span className="text-sm text-slate-500 hidden sm:block">
-                            Welcome, <b className="text-slate-900">{firstname} {lastname} ({username})</b>
-                        </span>
-                        <button onClick={handleLogout} className="text-sm font-medium text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
-                            <LogOut size={16} /> Logout
-                        </button>
-                    </div>
-                </div>
-            </header>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-12 transition-colors duration-300">
+            <NavBar
+                showUser={true}
+                user={{ username, firstname, lastname }}
+            />
 
             <main className="max-w-6xl mx-auto px-4 pt-8">
                 {/* Add Task & Sort Section */}
-                <div className="bg-white rounded-2xl shadow-sm border p-4 mb-8">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border dark:border-slate-800 p-4 mb-8 transition-colors">
                     <form onSubmit={handleAddTodo} className="flex flex-col md:flex-row gap-3">
                         <input
                             type="text"
@@ -185,14 +160,14 @@ export default function TodoList({ userId, username, firstname, lastname }: Todo
                             value={newTask}
                             onChange={(e) => setNewTask(e.target.value)}
                             maxLength={50}
-                            className="flex-[3] bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-sky-500 outline-none text-slate-700"
+                            className="flex-[3] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-sky-500 outline-none text-slate-700 dark:text-slate-100 placeholder:text-slate-400"
                             required
                         />
                         <input
                             type="date"
                             value={targetDate}
                             onChange={(e) => setTargetDate(e.target.value)}
-                            className="flex-[1] bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-sky-500 outline-none text-slate-500"
+                            className="flex-[1] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-sky-500 outline-none text-slate-500 dark:text-slate-300"
                             required
                         />
 
@@ -204,7 +179,7 @@ export default function TodoList({ userId, username, firstname, lastname }: Todo
                             <button
                                 type="button"
                                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                                className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-3 rounded-xl transition-all border border-slate-200 flex items-center justify-center gap-2 font-bold active:scale-95"
+                                className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-4 py-3 rounded-xl transition-all border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2 font-bold active:scale-95"
                                 title="Toggle Sort Order"
                             >
                                 {sortOrder === 'asc' ? <ArrowUp size={20} /> : <ArrowDown size={20} />}
@@ -214,7 +189,7 @@ export default function TodoList({ userId, username, firstname, lastname }: Todo
                 </div>
 
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                    <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-600">
                         <Loader2 className="animate-spin mb-2" size={32} />
                         <p className="font-medium">Loading Tasks...</p>
                     </div>
@@ -231,9 +206,9 @@ export default function TodoList({ userId, username, firstname, lastname }: Todo
 
                             return (
                                 <div key={status} className="flex flex-col gap-4">
-                                    <h3 className="flex items-center justify-between font-bold text-slate-500 text-[11px] tracking-widest px-2 uppercase">
+                                    <h3 className="flex items-center justify-between font-bold text-slate-500 dark:text-slate-400 text-[11px] tracking-widest px-2 uppercase">
                                         {status}
-                                        <span className="bg-slate-200 px-2 py-0.5 rounded-full text-[10px] text-slate-600 font-bold">
+                                        <span className="bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full text-[10px] text-slate-600 dark:text-slate-400 font-bold">
                                             {filteredSorted.length}
                                         </span>
                                     </h3>
@@ -242,42 +217,42 @@ export default function TodoList({ userId, username, firstname, lastname }: Todo
                                         {filteredSorted.map(todo => (
                                             <div
                                                 key={todo.id}
-                                                className={`group bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-sky-300 transition-all ${todo.status === 'DONE' ? 'opacity-70 bg-slate-50/50' : ''}`}
+                                                className={`group bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-sky-300 dark:hover:border-sky-800 transition-all ${todo.status === 'DONE' ? 'opacity-70 dark:opacity-50 bg-slate-50/50 dark:bg-slate-900/50' : ''}`}
                                             >
                                                 {editingId === todo.id ? (
                                                     <div className="flex flex-col gap-2">
                                                         <input
                                                             value={editText}
                                                             onChange={(e) => setEditText(e.target.value)}
-                                                            className="w-full border border-sky-500 rounded px-2 py-1 outline-none text-sm"
+                                                            className="w-full bg-white dark:bg-slate-800 border border-sky-500 rounded px-2 py-1 outline-none text-sm text-slate-900 dark:text-slate-100"
                                                             autoFocus
                                                         />
                                                         <div className="flex gap-2 justify-end">
-                                                            <button onClick={() => setEditingId(null)} className="text-slate-400 text-[10px] font-bold">CANCEL</button>
-                                                            <button onClick={() => handleEditTodo(todo.id)} className="text-sky-600 text-[10px] font-bold">SAVE</button>
+                                                            <button onClick={() => setEditingId(null)} className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase">Cancel</button>
+                                                            <button onClick={() => handleEditTodo(todo.id)} className="text-sky-600 dark:text-sky-400 text-[10px] font-bold uppercase">Save</button>
                                                         </div>
                                                     </div>
                                                 ) : (
                                                     <>
                                                         <div className="flex justify-between items-start gap-2 mb-2">
-                                                            <p className={`text-sm font-semibold text-slate-800 break-words leading-tight ${todo.status === 'DONE' ? 'line-through text-slate-400' : ''}`}>
+                                                            <p className={`text-sm font-semibold text-slate-800 dark:text-slate-100 break-words leading-tight ${todo.status === 'DONE' ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>
                                                                 {todo.task}
                                                             </p>
                                                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                                                <button onClick={() => { setEditingId(todo.id); setEditText(todo.task); }} className="text-slate-400 hover:text-sky-600">
+                                                                <button onClick={() => { setEditingId(todo.id); setEditText(todo.task); }} className="text-slate-400 dark:text-slate-500 hover:text-sky-600 dark:hover:text-sky-400">
                                                                     <Pencil size={14} />
                                                                 </button>
-                                                                <button onClick={() => handleDeleteTodo(todo.id)} className="text-slate-400 hover:text-red-600">
+                                                                <button onClick={() => handleDeleteTodo(todo.id)} className="text-slate-400 dark:text-slate-500 hover:text-red-600">
                                                                     <Trash2 size={14} />
                                                                 </button>
                                                             </div>
                                                         </div>
 
                                                         <div className="flex items-center gap-1.5 text-[10px] font-bold mb-4">
-                                                            <Calendar size={12} className="shrink-0" />
-                                                            <span className="flex gap-1">
-                                                                <span className="text-slate-400">Target: {new Date(todo.target_date).toLocaleDateString()}</span>
-                                                                <span className="text-slate-300">•</span>
+                                                            <Calendar size={12} className="shrink-0 text-slate-400" />
+                                                            <span className="flex gap-1 flex-wrap">
+                                                                <span className="text-slate-400 dark:text-slate-500">Target: {new Date(todo.target_date).toLocaleDateString()}</span>
+                                                                <span className="text-slate-300 dark:text-slate-700">•</span>
                                                                 {(() => {
                                                                     const target = new Date(todo.target_date);
                                                                     const today = new Date();
@@ -285,10 +260,10 @@ export default function TodoList({ userId, username, firstname, lastname }: Todo
                                                                     target.setHours(0, 0, 0, 0);
                                                                     const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-                                                                    if (todo.status === 'DONE') return <span className="text-green-500">COMPLETED</span>;
-                                                                    if (diffDays < 0) return <span className="text-red-500 font-black">OVERDUE ({Math.abs(diffDays)}d)</span>;
-                                                                    if (diffDays === 0) return <span className="text-amber-500">DUE TODAY</span>;
-                                                                    return <span className="text-sky-500">{diffDays} DAYS LEFT</span>;
+                                                                    if (todo.status === 'DONE') return <span className="text-green-500 dark:text-green-400">COMPLETED</span>;
+                                                                    if (diffDays < 0) return <span className="text-red-500 dark:text-red-400 font-black">OVERDUE ({Math.abs(diffDays)}d)</span>;
+                                                                    if (diffDays === 0) return <span className="text-amber-500 dark:text-amber-400">DUE TODAY</span>;
+                                                                    return <span className="text-sky-500 dark:text-sky-400">{diffDays} DAYS LEFT</span>;
                                                                 })()}
                                                             </span>
                                                         </div>
@@ -296,9 +271,9 @@ export default function TodoList({ userId, username, firstname, lastname }: Todo
                                                         <button
                                                             onClick={() => handleStatusChange(todo)}
                                                             className={`w-full py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1
-                                                                ${status === 'TODO' ? 'bg-sky-50 text-sky-600 hover:bg-sky-100' :
-                                                                  status === 'DOING' ? 'bg-green-50 text-green-600 hover:bg-green-100' :
-                                                                  'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                                                ${status === 'TODO' ? 'bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-950/50' :
+                                                                  status === 'DOING' ? 'bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-950/50' :
+                                                                  'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
                                                         >
                                                             {status === 'DONE' ? 'Restart' : 'Advance'} <ChevronRight size={12}/>
                                                         </button>
@@ -307,8 +282,8 @@ export default function TodoList({ userId, username, firstname, lastname }: Todo
                                             </div>
                                         ))}
                                         {filteredSorted.length === 0 && (
-                                            <div className="border-2 border-dashed border-slate-200 rounded-2xl py-10 text-center">
-                                                <p className="text-[10px] text-slate-300 font-bold uppercase tracking-tighter italic">No {status} tasks</p>
+                                            <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl py-10 text-center">
+                                                <p className="text-[10px] text-slate-300 dark:text-slate-600 font-bold uppercase tracking-tighter italic">No {status} tasks</p>
                                             </div>
                                         )}
                                     </div>
@@ -320,7 +295,7 @@ export default function TodoList({ userId, username, firstname, lastname }: Todo
             </main>
 
             <footer className="fixed bottom-4 left-0 right-0 text-center pointer-events-none">
-                <span className="bg-slate-800/90 backdrop-blur-sm text-white text-[9px] px-4 py-1.5 rounded-full shadow-lg font-bold">
+                <span className="bg-slate-800/90 dark:bg-slate-700/90 backdrop-blur-sm text-white text-[9px] px-4 py-1.5 rounded-full shadow-lg font-bold">
                     6x01xxxx - CEI Web Programming Project
                 </span>
             </footer>
