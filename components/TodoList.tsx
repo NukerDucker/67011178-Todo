@@ -1,11 +1,23 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, X, Check, LogOut, Loader2, Calendar, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+    Plus,
+    Pencil,
+    Trash2,
+    LogOut,
+    Loader2,
+    Calendar,
+    ChevronRight,
+    ArrowUp,
+    ArrowDown
+} from 'lucide-react';
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 interface Todo {
     id: number;
-    username: string;
+    userId: string;
     task: string;
     status: 'TODO' | 'DOING' | 'DONE';
     target_date: string;
@@ -13,7 +25,14 @@ interface Todo {
     updated_at: string;
 }
 
-export default function TodoList({ username, onLogout }: { username: string, onLogout: () => void }) {
+interface TodoListProps {
+    userId: string;
+    username: string;
+    firstname?: string;
+    lastname?: string;
+}
+
+export default function TodoList({ userId, username, firstname, lastname }: TodoListProps) {
     const [todos, setTodos] = useState<Todo[]>([]);
     const [newTask, setNewTask] = useState('');
     const [targetDate, setTargetDate] = useState('');
@@ -21,13 +40,23 @@ export default function TodoList({ username, onLogout }: { username: string, onL
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editText, setEditText] = useState('');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+    const router = useRouter();
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
-    // 1. Fetch Todos
+    const handleLogout = async () => {
+        await authClient.signOut({
+            fetchOptions: {
+                onSuccess: () => {
+                    router.push("/login");
+                },
+            },
+        });
+    };
+
     const fetchTodos = async () => {
         try {
-            const response = await fetch(`${API_URL}/todos?username=${username}`);
+            const response = await fetch(`${API_URL}/todos?userId=${userId}`);
             if (response.ok) {
                 const data = await response.json();
                 setTodos(data);
@@ -40,10 +69,9 @@ export default function TodoList({ username, onLogout }: { username: string, onL
     };
 
     useEffect(() => {
-        fetchTodos();
-    }, [username]);
+        if (userId) fetchTodos();
+    }, [userId]);
 
-    // 2. Add Todo
     const handleAddTodo = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTask.trim() || !targetDate) return;
@@ -53,7 +81,7 @@ export default function TodoList({ username, onLogout }: { username: string, onL
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    username,
+                    userId,
                     task: newTask,
                     target_date: targetDate
                 }),
@@ -69,7 +97,6 @@ export default function TodoList({ username, onLogout }: { username: string, onL
         }
     };
 
-    // 3. Cycle Status (TODO -> DOING -> DONE)
     const handleStatusChange = async (todo: Todo) => {
         const nextStatus: Record<string, 'TODO' | 'DOING' | 'DONE'> = {
             'TODO': 'DOING',
@@ -82,7 +109,10 @@ export default function TodoList({ username, onLogout }: { username: string, onL
             const response = await fetch(`${API_URL}/todos/${todo.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: updatedStatus }),
+                body: JSON.stringify({
+                    status: updatedStatus,
+                    userId: userId
+                }),
             });
             if (response.ok) {
                 setTodos(todos.map(t => t.id === todo.id ? { ...t, status: updatedStatus } : t));
@@ -92,14 +122,16 @@ export default function TodoList({ username, onLogout }: { username: string, onL
         }
     };
 
-    // 4. Edit Task
     const handleEditTodo = async (id: number) => {
         if (!editText.trim()) return;
         try {
             const response = await fetch(`${API_URL}/todos/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ task: editText }),
+                body: JSON.stringify({
+                    task: editText,
+                    userId: userId
+                }),
             });
             if (response.ok) {
                 setTodos(todos.map(t => t.id === id ? { ...t, task: editText } : t));
@@ -110,7 +142,6 @@ export default function TodoList({ username, onLogout }: { username: string, onL
         }
     };
 
-    // 5. Delete Task
     const handleDeleteTodo = async (id: number) => {
         if (!confirm("Are you sure?")) return;
         try {
@@ -133,8 +164,11 @@ export default function TodoList({ username, onLogout }: { username: string, onL
                         <span className="font-bold text-slate-700 border-l pl-3 uppercase tracking-tight">CEI Todo</span>
                     </div>
                     <div className="flex items-center gap-4">
-                        <span className="text-sm text-slate-500 hidden sm:block">User: <b className="text-slate-900">{username}</b></span>
-                        <button onClick={onLogout} className="text-sm font-medium text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+                        {/* Displays: Full Name (username) */}
+                        <span className="text-sm text-slate-500 hidden sm:block">
+                            Welcome, <b className="text-slate-900">{firstname} {lastname} ({username})</b>
+                        </span>
+                        <button onClick={handleLogout} className="text-sm font-medium text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
                             <LogOut size={16} /> Logout
                         </button>
                     </div>
@@ -162,7 +196,6 @@ export default function TodoList({ username, onLogout }: { username: string, onL
                             required
                         />
 
-                        {/* Action Buttons Group */}
                         <div className="flex gap-2 shrink-0">
                             <button type="submit" className="bg-sky-600 hover:bg-sky-700 text-white px-6 py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 font-bold active:scale-95">
                                 <Plus size={20} /> Add
@@ -174,7 +207,7 @@ export default function TodoList({ username, onLogout }: { username: string, onL
                                 className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-3 rounded-xl transition-all border border-slate-200 flex items-center justify-center gap-2 font-bold active:scale-95"
                                 title="Toggle Sort Order"
                             >
-                        {sortOrder === 'asc' ? <ArrowUp size={20} /> : <ArrowDown size={20} />}
+                                {sortOrder === 'asc' ? <ArrowUp size={20} /> : <ArrowDown size={20} />}
                             </button>
                         </div>
                     </form>
@@ -183,12 +216,11 @@ export default function TodoList({ username, onLogout }: { username: string, onL
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                         <Loader2 className="animate-spin mb-2" size={32} />
-                        <p className="font-medium">Loading CEI Tasks...</p>
+                        <p className="font-medium">Loading Tasks...</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {statuses.map(status => {
-                            // Apply Sort Logic
                             const filteredSorted = todos
                                 .filter(t => t.status === status)
                                 .sort((a, b) => {
@@ -249,12 +281,9 @@ export default function TodoList({ username, onLogout }: { username: string, onL
                                                                 {(() => {
                                                                     const target = new Date(todo.target_date);
                                                                     const today = new Date();
-                                                                    // Reset hours to compare only dates
                                                                     today.setHours(0, 0, 0, 0);
                                                                     target.setHours(0, 0, 0, 0);
-
-                                                                    const diffTime = target.getTime() - today.getTime();
-                                                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                                                    const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
                                                                     if (todo.status === 'DONE') return <span className="text-green-500">COMPLETED</span>;
                                                                     if (diffDays < 0) return <span className="text-red-500 font-black">OVERDUE ({Math.abs(diffDays)}d)</span>;
@@ -290,7 +319,6 @@ export default function TodoList({ username, onLogout }: { username: string, onL
                 )}
             </main>
 
-            {/* Student ID Footer */}
             <footer className="fixed bottom-4 left-0 right-0 text-center pointer-events-none">
                 <span className="bg-slate-800/90 backdrop-blur-sm text-white text-[9px] px-4 py-1.5 rounded-full shadow-lg font-bold">
                     6x01xxxx - CEI Web Programming Project

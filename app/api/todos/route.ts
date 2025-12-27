@@ -1,45 +1,46 @@
-// app/api/todos/route.ts
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Tagesschrift } from 'next/font/google';
 
+// GET: Fetch todos for a specific user
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const username = searchParams.get('username');
+    try {
+        const { searchParams } = new URL(request.url);
+        const userId = searchParams.get("userId");
 
-  if (!username) return NextResponse.json({ error: "Username required" }, { status: 400 });
+        if (!userId) {
+            return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+        }
 
-  try {
-    const todos = await prisma.todo.findMany({
-      where: { username },
-      orderBy: { target_date: 'desc' },
-    });
-    return NextResponse.json(todos);
-  } catch (error) {
-    return NextResponse.json({ error: "DB Connection Failed" }, { status: 500 });
-  }
+        const todos = await prisma.todo.findMany({
+            where: { userId: userId },
+            orderBy: { target_date: 'asc' }
+        });
+
+        return NextResponse.json(todos);
+    } catch (error) {
+        console.error("Fetch error:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
 }
 
+// POST: Create a new todo
 export async function POST(request: Request) {
-  try {
-    const { username, task, target_date } = await request.json();
+    try {
+        const body = await request.json();
+        const { userId, task, target_date } = body;
 
-    if (!username || !task || !target_date) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        const newTodo = await prisma.todo.create({
+            data: {
+                userId,
+                task,
+                target_date: new Date(target_date),
+                status: 'TODO',
+            },
+        });
+
+        return NextResponse.json(newTodo);
+    } catch (error) {
+        console.error("Create error:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
-
-    const newTodo = await prisma.todo.create({
-      data: {
-        username: username,
-        task: task,
-        target_date: new Date(target_date), // Ensure this is a Date object
-        status: 'TODO'
-      }
-    });
-
-    return NextResponse.json(newTodo);
-  } catch (error) {
-    console.error("POST Error:", error);
-    return NextResponse.json({ error: "Failed to create task" }, { status: 500 });
-  }
 }

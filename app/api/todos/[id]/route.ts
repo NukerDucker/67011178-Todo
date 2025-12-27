@@ -1,38 +1,58 @@
-// app/api/todos/[id]/route.ts
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma'; // <--- Use this instead of 'new PrismaClient()'
-import { TrainTrack } from 'lucide-react';
+import prisma from '@/lib/prisma';
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-    // In Next.js 15, params is a Promise
-    const { id: idStr } = await params;
-    const id = parseInt(idStr);
-
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> } // Define params as a Promise
+) {
     try {
-        const { task, status, target_date } = await request.json();
+        const body = await request.json();
 
+        // 1. You MUST await params in Next.js 15+ for dynamic routes [id]
+        const resolvedParams = await params;
+        const id = parseInt(resolvedParams.id);
+
+        if (isNaN(id)) {
+            return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+        }
+
+        // 2. Update the record
         const updatedTodo = await prisma.todo.update({
-            where: { id },
+            where: { id: id },
             data: {
-                task: task,
-                status: status,
-                target_date: target_date ? new Date(target_date) : undefined
-            }
+                task: body.task,
+                status: body.status,
+                // updated_at is handled automatically if using @updatedAt in schema
+            },
         });
+
         return NextResponse.json(updatedTodo);
     } catch (error) {
-        return NextResponse.json({ error: "Update failed" }, { status: 500 });
+        console.error("Update error:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-    const { id: idStr } = await params;
-    const id = parseInt(idStr);
-
+// Fixed DELETE route as well
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
     try {
-        await prisma.todo.delete({ where: { id } });
-        return NextResponse.json({ message: "Deleted" });
+        const resolvedParams = await params;
+        const id = parseInt(resolvedParams.id);
+
+        if (isNaN(id)) {
+            return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+        }
+
+        await prisma.todo.delete({
+            where: { id: id },
+        });
+
+        return NextResponse.json({ success: true });
     } catch (error) {
-        return NextResponse.json({ error: "Delete failed" }, { status: 500 });
+        console.error("Delete error:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
