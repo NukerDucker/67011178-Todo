@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import Turnstile from "react-turnstile";
-import { Loader2, LogIn } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { NavBar } from "@/components/NavBar";
+import { useTheme } from "next-themes"; // Import useTheme
 
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,7 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState("");
   const [loading, setLoading] = useState(false);
+  const { theme } = useTheme(); // Access current theme
   const router = useRouter();
 
   const form = useForm<z.infer<typeof loginSchema>>({
@@ -67,27 +70,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      {/* Navbar Header */}
-      <header className="bg-white border-b sticky top-0 z-10 shrink-0">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center">
-          <div className="flex items-center gap-3">
-            <img src="/cei-logo.png" alt="CEI Logo" className="h-9 w-auto" />
-            <span className="font-bold text-slate-700 border-l pl-3 uppercase tracking-tight">CEI Todo</span>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans transition-colors duration-300">
+      <NavBar />
 
-      {/* Main Container */}
       <main className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-[440px] bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-10">
+        {/* Card Container */}
+        <div className="w-full max-w-[440px] bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8 md:p-10 transition-colors">
 
           {/* Welcome Text Section */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-slate-100 tracking-tight">
               Welcome Back
             </h1>
-            <p className="text-gray-500 mt-2 font-medium">Please enter your credentials to continue</p>
+            <p className="text-gray-500 dark:text-slate-400 mt-2 font-medium">Please enter your credentials to continue</p>
           </div>
 
           <Form {...form}>
@@ -97,11 +92,11 @@ export default function LoginPage() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="block text-sm font-semibold text-gray-700">Username</FormLabel>
+                    <FormLabel className="block text-sm font-semibold text-gray-700 dark:text-slate-300">Username</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="e.g. 6x01xxxx"
-                        className="w-full px-4 py-6 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:ring-2 focus:ring-sky-500 transition-all"
+                        className="w-full px-4 py-6 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 transition-all placeholder:text-gray-400 dark:placeholder:text-slate-500"
                         {...field}
                       />
                     </FormControl>
@@ -115,12 +110,12 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="block text-sm font-semibold text-gray-700">Password</FormLabel>
+                    <FormLabel className="block text-sm font-semibold text-gray-700 dark:text-slate-300">Password</FormLabel>
                     <FormControl>
                       <Input
                         type="password"
                         placeholder="••••••••"
-                        className="w-full px-4 py-6 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:ring-2 focus:ring-sky-500 transition-all"
+                        className="w-full px-4 py-6 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 transition-all placeholder:text-gray-400 dark:placeholder:text-slate-500"
                         {...field}
                       />
                     </FormControl>
@@ -131,14 +126,13 @@ export default function LoginPage() {
 
               <div className="flex justify-center py-2 scale-90">
                 <Turnstile
-  sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-  onVerify={(token) => {
-    setCaptchaToken(token);
-    console.log("Captcha Verified:", token); // Debug: see if token is generated
-  }}
-  onExpire={() => setCaptchaToken("")} // Clear token if it expires
-  onError={() => toast.error("Captcha failed to load")}
-/>
+                  sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                  onVerify={(token) => setCaptchaToken(token)}
+                  onExpire={() => setCaptchaToken("")}
+                  onError={() => toast.error("Captcha failed to load")}
+                  // Dynamically set theme for Turnstile
+                  theme={(theme === "dark" ? "dark" : "light") as any}
+                />
               </div>
 
               <Button
@@ -158,17 +152,17 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-100" />
+              <span className="w-full border-t border-gray-100 dark:border-slate-800" />
             </div>
             <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
-              <span className="bg-white px-4 text-gray-400">Social Access</span>
+              <span className="bg-white dark:bg-slate-900 px-4 text-gray-400 dark:text-slate-500">Social Access</span>
             </div>
           </div>
 
           <Button
             variant="outline"
             onClick={handleGoogleLogin}
-            className="w-full py-6 border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-all active:scale-[0.98] flex gap-2"
+            className="w-full py-6 border-gray-200 dark:border-slate-700 rounded-xl font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all active:scale-[0.98] flex gap-2"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -180,8 +174,8 @@ export default function LoginPage() {
           </Button>
 
           {/* University Project Footer inside card */}
-          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-            <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-bold">
+          <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-800 text-center">
+            <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold">
               University Project Todo
             </p>
           </div>
@@ -190,7 +184,7 @@ export default function LoginPage() {
 
       {/* External Page Footer */}
       <footer className="p-8 text-center shrink-0">
-        <span className="bg-slate-800 text-white text-[9px] px-4 py-1.5 rounded-full font-bold uppercase tracking-widest shadow-lg">
+        <span className="bg-slate-800 dark:bg-slate-700 text-white text-[9px] px-4 py-1.5 rounded-full font-bold uppercase tracking-widest shadow-lg">
           6x01xxxx - CEI Web Programming Project
         </span>
       </footer>
