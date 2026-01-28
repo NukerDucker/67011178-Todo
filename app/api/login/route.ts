@@ -12,15 +12,13 @@ export async function POST(request: Request) {
             );
         }
 
-        // Optional: Check if user exists or create them
-        // In a simple Todo app, we often just ensure the name is valid
-        // so the frontend can start querying todos for that name.
 
         return NextResponse.json({
             success: true,
             message: 'Login successful',
             username: username
         });
+        
     } catch (error) {
         console.error('Login error:', error);
         return NextResponse.json(

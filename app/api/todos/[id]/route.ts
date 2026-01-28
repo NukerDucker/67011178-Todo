@@ -1,10 +1,9 @@
 // app/api/todos/[id]/route.ts
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma'; // <--- Use this instead of 'new PrismaClient()'
+import prisma from '@/lib/prisma';
 import { TrainTrack } from 'lucide-react';
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-    // In Next.js 15, params is a Promise
     const { id: idStr } = await params;
     const id = parseInt(idStr);
 
