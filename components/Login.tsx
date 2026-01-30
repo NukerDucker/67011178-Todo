@@ -1,123 +1,123 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { SignIn } from "@/components/auth-components";
+import Register from "@/components/Register";
+import { loginWithCredentials } from "@/lib/auth-actions";
+import { GoogleReCaptchaProvider, useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
-interface LoginProps {
-    onLogin: (user: string) => void;
-}
+function LoginForm() {
+    const { executeRecaptcha } = useGoogleReCaptcha();
 
-export default function Login({ onLogin }: LoginProps) {
-    const [username, setUsername] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-
-    // Pull API_URL from env, default to relative path for Next.js routes
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-
-        const trimmedUser = username.trim();
-
-        if (!trimmedUser) {
-            setError('Please enter a username.');
+    const handleSubmit = useCallback(async (formData: FormData) => {
+        if (!executeRecaptcha) {
+            console.log('Execute recaptcha not yet available');
             return;
         }
 
-        // Validate length based on your Postgres schema (VarChar(20))
-        if (trimmedUser.length > 20) {
-            setError('Username must be 20 characters or less.');
-            return;
-        }
+        const token = await executeRecaptcha('login');
+        formData.append('captchaToken', token);
 
-        setLoading(true);
-
-        try {
-            const response = await fetch(`${API_URL}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: trimmedUser }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                setError(data.message || 'Login failed.');
-                return;
-            }
-
-            if (data.success) {
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('todo_username', trimmedUser);
-                }
-                onLogin(trimmedUser);
-            }
-        } catch (err) {
-            setError('Network error: Could not connect to the server.');
-        } finally {
-            setLoading(false);
-        }
-    };
+        await loginWithCredentials(formData);
+    }, [executeRecaptcha]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-            <div className="w-full max-w-md p-8 sm:p-12 rounded-2xl bg-white shadow-2xl transition-all">
-                {/* CEI Logo Requirement */}
-                <div className="flex justify-center mb-8">
-                    <img
-                        src="/cei-logo.png"
-                        alt="CEI Logo"
-                        className="h-20 w-auto object-contain drop-shadow-sm"
-                    />
-                </div>
+        <form action={handleSubmit} className="space-y-4 mb-4">
+             <div>
+                <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-1">Username</label>
+                <input id="username" name="username" type="text" required className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent" placeholder="Enter your username" />
+            </div>
+            <div>
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+                <input id="password" name="password" type="password" required className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent" placeholder="••••••••" />
+            </div>
 
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-                        Welcome Back
-                    </h1>
-                    <p className="text-gray-500 mt-2">Please enter your username to continue</p>
-                </div>
+            <button type="submit" className="w-full py-2.5 bg-sky-600 text-white font-semibold rounded-lg hover:bg-sky-700 active:scale-95 transition-all">
+                Sign In
+            </button>
+        </form>
+    );
+}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Username
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="e.g. 6x01xxxx"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+export default function Login() {
+    const [isRegistering, setIsRegistering] = useState(false);
+
+    if (isRegistering) {
+        return (
+            <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
+                <div className="w-full max-w-md p-8 sm:p-12 rounded-2xl bg-white shadow-2xl transition-all">
+                     <div className="flex justify-center mb-8">
+                        <img
+                            src="/cei-logo.png"
+                            alt="CEI Logo"
+                            className="h-20 w-auto object-contain drop-shadow-sm"
+                        />
+                    </div>
+                    <Register onRegisterSuccess={() => setIsRegistering(false)} />
+                     <div className="mt-4 text-center">
+                        <button
+                            onClick={() => setIsRegistering(false)}
+                            className="text-sm text-sky-600 hover:text-sky-700 font-semibold"
+                        >
+                            Already have an account? Sign in
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <GoogleReCaptchaProvider reCaptchaKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}>
+            <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
+                <div className="w-full max-w-md p-8 sm:p-12 rounded-2xl bg-white shadow-2xl transition-all">
+                    {/* CEI Logo Requirement */}
+                    <div className="flex justify-center mb-8">
+                        <img
+                            src="/cei-logo.png"
+                            alt="CEI Logo"
+                            className="h-20 w-auto object-contain drop-shadow-sm"
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className={`w-full py-3.5 px-4 bg-sky-600 text-white font-bold rounded-xl shadow-lg hover:bg-sky-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${
-                            loading ? 'opacity-70 cursor-not-allowed' : ''
-                        }`}
-                    >
-                        {loading ? 'Connecting...' : 'Login to Dashboard'}
-                    </button>
-                </form>
+                    <div className="text-center mb-8">
+                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                            Welcome Back
+                        </h1>
+                        <p className="text-gray-500 mt-2">Sign in to your account to continue</p>
+                    </div>
 
-                {error && (
-                    <div className="mt-6 p-3 bg-red-50 border border-red-100 rounded-lg">
-                        <p className="text-red-600 text-center text-sm font-medium">
-                            {error}
+                    <LoginForm />
+
+                    <div className="relative mb-4">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-200"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <SignIn provider="google" />
+                    </div>
+
+                    <div className="mt-6 text-center">
+                        <button
+                            onClick={() => setIsRegistering(true)}
+                            className="text-sm text-sky-600 hover:text-sky-700 font-semibold"
+                        >
+                            Don't have an account? Create one
+                        </button>
+                    </div>
+
+                    <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+                        <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold">
+                            University Project Todo
                         </p>
                     </div>
-                )}
-
-                <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-                    <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold">
-                        University Project Todo
-                    </p>
                 </div>
             </div>
-        </div>
+        </GoogleReCaptchaProvider>
     );
 }

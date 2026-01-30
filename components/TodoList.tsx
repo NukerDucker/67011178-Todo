@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, X, Check, LogOut, Loader2, Calendar, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { handleSignOut } from '@/lib/auth-actions';
+import type { Session } from 'next-auth';
 
 interface Todo {
     id: number;
@@ -13,7 +15,7 @@ interface Todo {
     updated_at: string;
 }
 
-export default function TodoList({ username, onLogout }: { username: string, onLogout: () => void }) {
+export default function TodoList({ user }: { readonly user: Session['user'] }) {
     const [todos, setTodos] = useState<Todo[]>([]);
     const [newTask, setNewTask] = useState('');
     const [targetDate, setTargetDate] = useState('');
@@ -23,11 +25,12 @@ export default function TodoList({ username, onLogout }: { username: string, onL
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+    const userName = user?.name || user?.email || 'User';
 
     // 1. Fetch Todos
     const fetchTodos = async () => {
         try {
-            const response = await fetch(`${API_URL}/todos?username=${username}`);
+            const response = await fetch(`${API_URL}/todos`);
             if (response.ok) {
                 const data = await response.json();
                 setTodos(data);
@@ -41,7 +44,7 @@ export default function TodoList({ username, onLogout }: { username: string, onL
 
     useEffect(() => {
         fetchTodos();
-    }, [username]);
+    }, []);
 
     // 2. Add Todo
     const handleAddTodo = async (e: React.FormEvent) => {
@@ -53,7 +56,6 @@ export default function TodoList({ username, onLogout }: { username: string, onL
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    username,
                     task: newTask,
                     target_date: targetDate
                 }),
@@ -133,10 +135,29 @@ export default function TodoList({ username, onLogout }: { username: string, onL
                         <span className="font-bold text-slate-700 border-l pl-3 uppercase tracking-tight">CEI Todo</span>
                     </div>
                     <div className="flex items-center gap-4">
-                        <span className="text-sm text-slate-500 hidden sm:block">User: <b className="text-slate-900">{username}</b></span>
-                        <button onClick={onLogout} className="text-sm font-medium text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
-                            <LogOut size={16} /> Logout
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {user?.image ? (
+                                <img
+                                    src={user.image}
+                                    alt={userName}
+                                    className="w-8 h-8 rounded-full border border-slate-200 object-cover"
+                                />
+                            ) : (
+                                <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 font-bold text-xs border border-sky-200">
+                                    {userName.slice(0, 2).toUpperCase()}
+                                </div>
+                            )}
+                            <div className="flex flex-col">
+                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Logged in as</span>
+                                <span className="text-sm text-slate-900 font-bold leading-none">{userName}</span>
+                            </div>
+                        </div>
+                        <div className="h-8 w-px bg-slate-200 mx-2"></div>
+                        <form action={handleSignOut} className="flex">
+                            <button className="text-sm font-medium text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+                                <LogOut size={16} /> Logout
+                            </button>
+                        </form>
                     </div>
                 </div>
             </header>
